@@ -16,4 +16,4 @@ echo "Compiling tests (${#files[@]} files)…"
 swiftc -O -swift-version 5 -sdk "$(xcrun --show-sdk-path)" -target arm64-apple-macos14.0 -vfsoverlay "$FIX/overlay.yaml" \
   -framework IOKit -framework CoreAudio -framework CoreMediaIO -framework ServiceManagement -framework Security -framework AVFoundation \
   "${files[@]}" -o build/LidTapTests
-exec build/LidTapTests "$@"
+exec "$PWD/build/LidTapTests" "$@"
