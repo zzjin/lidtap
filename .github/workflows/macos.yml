@@ -1,0 +1,19 @@
+name: macOS build and tests
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app without installation
+        run: LidTapApp/scripts/build.sh --no-install
+      - name: Test ML, detector and double-tap dispatch
+        run: LidTapApp/scripts/test.sh ml detector doubletap
+      - name: Archive ad-hoc signed app
+        run: ditto -c -k --sequesterRsrc --keepParent LidTapApp/build/LidTap.app LidTap-DoubleTap-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LidTap-DoubleTap-macOS
+          path: LidTap-DoubleTap-macOS.zip

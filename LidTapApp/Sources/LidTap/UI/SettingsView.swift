@@ -6,10 +6,10 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     /// Panes showing the active profile's settings.
     var isPerProfile: Bool { self == .zones || self == .training || self == .detection }
-    var title: String { rawValue.capitalized }
+    var title: String { self == .zones ? "Action" : rawValue.capitalized }
     var symbol: String {
         switch self {
-        case .zones: "rectangle.split.2x2"
+        case .zones: "hand.tap"
         case .profiles: "rectangle.stack"
         case .training: "chart.bar.xaxis"
         case .detection: "waveform.path.ecg"
@@ -60,7 +60,6 @@ struct SettingsView: View {
 private struct ZonesPane: View {
     @Environment(AppModel.self) private var app
     @State private var selected = 0
-    @State private var pendingGrid: Grid?
     @State private var choosingApp = false
     @State private var choosingShortcut = false
 
@@ -75,11 +74,11 @@ private struct ZonesPane: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             } footer: {
-                Text("Click a zone to edit it. Zones are where you tap on your screen.")
+                Text("Double-tap the top-right edge of the open display to run this action.")
                     .frame(maxWidth: .infinity, alignment: .center)
             }
 
-            Section("Zone \(selected + 1)") {
+            Section("Top-right double tap") {
                 Picker("Action", selection: Binding(
                     get: { current.kind },
                     set: { kind in
@@ -124,16 +123,6 @@ private struct ZonesPane: View {
 
             if current.kind == .privacyGuard { PrivacyGuardSection() }
 
-            Section {
-                Picker("Grid", selection: Binding(get: { app.grid }, set: { g in if g != app.grid { pendingGrid = g } })) {
-                    ForEach(Grid.presets, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-            } header: {
-                Text("Layout")
-            } footer: {
-                Text("Fewer zones are more reliable. A new layout needs a new calibration.")
-            }
         }
         .onAppear {
             if let z = app.settingsFocusZone, z < app.grid.count {
@@ -145,15 +134,6 @@ private struct ZonesPane: View {
             }
         }
         .onChange(of: app.grid) { selected = 0 }
-        .alert("Switch to \(pendingGrid?.title ?? "")?", isPresented: Binding(get: { pendingGrid != nil }, set: { if !$0 { pendingGrid = nil } })) {
-            Button("Cancel", role: .cancel) { pendingGrid = nil }
-            Button("Switch and Calibrate") {
-                if let g = pendingGrid { app.startCalibration(grid: g) }
-                pendingGrid = nil
-            }
-        } message: {
-            Text("The \(app.dataset.zoneTapCount) taps recorded for \(app.grid.title) will be replaced. Your bump examples are kept.")
-        }
         .sheet(isPresented: $choosingApp) {
             AppPicker { info in
                 app.setAction(ZoneAction(kind: .openApp, appBundleID: info.bundleID, appName: info.name), for: selected)
@@ -180,7 +160,7 @@ private struct PrivacyGuardSection: View {
         } header: {
             Text("Privacy Guard")
         } footer: {
-            Text("Hides every screen until you tap this zone again or click. Turns the camera off in Zoom, Microsoft Teams, Webex and Google Meet (Chrome, Edge, Brave or Safari), and turns it back on afterwards.")
+            Text("Hides every screen until you double-tap the top-right edge again or click. Turns the camera off in Zoom, Microsoft Teams, Webex and Google Meet (Chrome, Edge, Brave or Safari), and turns it back on afterwards.")
         }
     }
 }
@@ -291,7 +271,7 @@ private struct TrainingPane: View {
         Form {
             Section {
                 LabeledContent("Accuracy") {
-                    Text(app.accuracy.map { "\(Int(($0 * 100).rounded()))% of taps land in the right zone" } ?? "Not trained yet")
+                    Text(app.accuracy.map { "\(Int(($0 * 100).rounded()))% of examples classified correctly" } ?? "Not trained yet")
                         .foregroundStyle(app.accuracy == nil ? .secondary : .primary)
                 }
                 LabeledContent("Recorded") {
@@ -315,7 +295,7 @@ private struct TrainingPane: View {
                     }
                 } label: {
                     Text("Act only when this sure")
-                    Text("Below this, LidTap shows \"Not sure which zone\" instead of guessing.")
+                    Text("Each tap in the pair must meet this confidence before the action can run.")
                 }
                 LabeledContent {
                     HStack {
@@ -344,9 +324,9 @@ private struct TrainingPane: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                 } header: {
-                    Text("Reliability by zone")
+                    Text("Target recognition reliability")
                 } footer: {
-                    Text("How often a tap in each zone was recognised as that zone, scored on taps the recogniser never saw. Add taps to a weak zone, or use fewer zones.")
+                    Text("How often the top-right target was recognised on held-out examples. Add target and background samples to improve reliability.")
                 }
 
                 Section("Reliability by layout") { layoutTable(report) }
@@ -357,7 +337,7 @@ private struct TrainingPane: View {
                     } header: {
                         Text("Taps needed")
                     } footer: {
-                        Text("Accuracy against the number of taps per zone used for learning. A flat curve means more taps won't help much.")
+                        Text("Accuracy against the number of examples per class used for learning.")
                     }
                 }
             } else {
@@ -365,7 +345,7 @@ private struct TrainingPane: View {
                     ContentUnavailableView {
                         Label("Nothing learned yet", systemImage: "hand.tap")
                     } description: {
-                        Text("Calibrate to record a few taps in each zone. Results appear here.")
+                        Text("Calibrate the top-right target and background bumps. Results appear here.")
                     } actions: {
                         Button("Calibrate…") { app.startCalibration() }.buttonStyle(.borderedProminent)
                     }
@@ -387,7 +367,7 @@ private struct TrainingPane: View {
                         if label == noiseLabel {
                             Label("Bumps", systemImage: "waveform.badge.minus")
                         } else {
-                            Label { Text("Zone \((zoneIndex(label) ?? 0) + 1)") } icon: { ActionGlyph(action: app.action(for: zoneIndex(label) ?? 0), size: 12) }
+                            Label { Text("Top-right target") } icon: { ActionGlyph(action: app.action(for: zoneIndex(label) ?? 0), size: 12) }
                         }
                     }
                 }
@@ -400,7 +380,7 @@ private struct TrainingPane: View {
         .confirmationDialog("Delete all \(app.dataset.samples.count) recorded taps?", isPresented: $confirmDeleteAll) {
             Button("Delete All Taps", role: .destructive) { app.clearData() }
         } message: {
-            Text("LidTap will stop recognising zones until you calibrate again.")
+            Text("LidTap will stop recognising double taps until you calibrate again.")
         }
     }
 
@@ -442,7 +422,7 @@ private struct TrainingPane: View {
                 ForEach(cm.indices, id: \.self) { i in
                     let total = max(cm[i].reduce(0, +), 1)
                     GridRow {
-                        Text(i < short.count ? (short[i] == "Bump" ? "Bump" : "Zone \(short[i])") : "").font(.caption).foregroundStyle(.secondary)
+                        Text(i < short.count ? (short[i] == "Bump" ? "Bump" : "Target") : "").font(.caption).foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                         ForEach(cm[i].indices, id: \.self) { j in
                             let v = cm[i][j], share = Double(v) / Double(total)
@@ -456,7 +436,7 @@ private struct TrainingPane: View {
                     }
                 }
             }
-            Text("The diagonal is correct. Anything off it is a tap read as another zone.").font(.caption).foregroundStyle(.secondary)
+            Text("The diagonal is correct. Other cells confuse the target with background motion.").font(.caption).foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
     }
@@ -520,7 +500,7 @@ private struct DetectionPane: View {
                 }
                 slider("Trigger", "How far above the resting noise a tap must rise", $app.config.detector.k, 2...15, 0.5) { String(format: "%.1f× noise", $0) }
                 slider("Minimum", "Raise if bumps register as taps. Lower if gentle taps are missed", $app.config.detector.minThreshold, 0.2...20, 0.1) { String(format: "%.1f °/s", $0) }
-                slider("Gap between taps", "Shorter allows quicker repeat taps", $app.config.detector.refractory, 0.15...1, 0.05) { String(format: "%.2f s", $0) }
+                LabeledContent("Double-tap interval", value: "0.18–0.65 seconds")
                 slider("Pause after typing", "Taps this soon after a key, click or scroll are ignored", $app.config.detector.gateSeconds, 0...1, 0.05) { String(format: "%.2f s", $0) }
                 Toggle(isOn: $app.config.detector.gating) {
                     Text("Ignore taps while typing or moving the lid")
@@ -538,7 +518,7 @@ private struct DetectionPane: View {
                                 Text(r.date, format: .dateTime.hour().minute().second()).monospacedDigit().foregroundStyle(.tertiary)
                             }
                         } label: {
-                            Text(r.label.flatMap(zoneIndex).map { "Zone \($0 + 1) · \(r.detail)" } ?? r.detail).lineLimit(1)
+                            Text(r.label.flatMap(zoneIndex).map { _ in "Top-right · \(r.detail)" } ?? r.detail).lineLimit(1)
                         }
                     }
                 } else {
@@ -628,7 +608,7 @@ private struct GeneralPane: View {
             Section {
                 Toggle(isOn: $app.config.showTapFeedback) {
                     Text("Show each tap on screen")
-                    Text("A ripple in the zone you tapped, with the action's name.")
+                    Text("A ripple and action name after a recognised double tap.")
                 }
                 Toggle("Play sounds", isOn: $app.config.playSounds)
             } header: {

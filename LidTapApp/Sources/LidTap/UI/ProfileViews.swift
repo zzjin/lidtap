@@ -170,7 +170,7 @@ struct ProfilesPane: View {
                     }
                 }
                 Section {
-                    LabeledContent("Each profile has its own") { Text("Calibration, zone actions and sensitivity") }
+                    LabeledContent("Each profile has its own") { Text("Calibration, double-tap action and sensitivity") }
                     LabeledContent("Shared by all profiles") { Text("Privacy Guard, feedback, sounds and updates") }
                 }
             } else {
@@ -197,7 +197,7 @@ struct ProfilesPane: View {
             }
             .padding(.bottom, 4)
             Text("A setup for every place").font(.title3.weight(.semibold))
-            Text("Taps feel different on a desk, on your lap or on a sofa. A profile gives each place its own calibration, zone actions and sensitivity. Switch between them from the menu bar.")
+            Text("Taps feel different on a desk, on your lap or on a sofa. A profile gives each place its own calibration, double-tap action and sensitivity. Switch between them from the menu bar.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

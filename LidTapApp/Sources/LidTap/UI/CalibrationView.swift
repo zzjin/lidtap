@@ -154,11 +154,7 @@ private struct TapStage: View {
     /// Where to tap in a zone: toward the screen's outer edge, where a tap twists the laptop most (a longer lever
     /// about the hinge and the screen's centre), so zones are easiest to tell apart. Centre zones keep their centre.
     private func tapPoint(zone i: Int, w: CGFloat, h: CGFloat) -> CGPoint {
-        let r = i / cal.grid.cols, c = i % cal.grid.cols
-        let inset: CGFloat = 0.2
-        let x = c == 0 ? w * inset : c == cal.grid.cols - 1 ? (CGFloat(c) + 1 - inset) * w : (CGFloat(c) + 0.5) * w
-        let y = r == 0 ? h * inset + 30 : r == cal.grid.rows - 1 ? (CGFloat(r) + 1 - inset) * h : (CGFloat(r) + 0.36) * h
-        return CGPoint(x: x, y: y)
+        CGPoint(x: w - 32, y: 32)
     }
 
     @ViewBuilder
@@ -174,14 +170,14 @@ private struct TapStage: View {
             if let r = app.ripple, r.zone == i { Ripple(color: .accentColor, trigger: r.id).padding(40) }
             VStack(spacing: 8) {
                 if isTarget {
-                    Text("Zone \(i + 1)")
+                    Text("Top-right screen edge")
                         .font(.system(.headline, design: .rounded))
                         .foregroundStyle(.white.opacity(0.75))
                     Text(cal.remainingInBlock > 1 ? "Tap the dot \(cal.remainingInBlock) times" : "Tap the dot once")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
-                    Text("A quick, light flick. Wait for the screen to settle between taps")
+                    Text("Calibration: single light taps on the edge, not the glass. After setup, double-tap to act.")
                         .font(.callout)
                         .foregroundStyle(.white.opacity(0.7))
                 } else {
@@ -198,11 +194,11 @@ private struct TapStage: View {
             .padding(.horizontal, 16)
             .padding(.vertical, isTarget ? 28 : 16)
             // Keep the instructions on the side of the zone away from the tap dot, so the dot is never covered.
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isTarget ? (i / cal.grid.cols == cal.grid.rows - 1 ? .top : .bottom) : .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .animation(DS.Motion.state, value: isTarget)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(isTarget ? "Zone \(i + 1). Tap here" : "Zone \(i + 1), \(done) of \(cal.perZone) taps")
+        .accessibilityLabel("Top-right edge. \(done) of \(cal.perZone) taps recorded")
     }
 }
 
@@ -283,12 +279,13 @@ private struct NoisePromptStage: View {
         StagePanel {
             Image(systemName: "checkmark.circle").font(.system(size: 40, weight: .light)).foregroundStyle(.green)
                 .symbolEffect(.bounce, value: true)
-            Text("All \(cal.grid.count) zones recorded").font(.title.weight(.semibold))
-            Text("Recommended: show LidTap what isn't a tap, so it learns to ignore it. For 20 seconds, type a sentence, click the trackpad, knock the desk and nudge the lid. Just don't tap the screen.")
+            Text("Top-right target recorded").font(.title.weight(.semibold))
+            Text("Required for first setup: teach LidTap what to ignore. For 20 seconds, type, click the trackpad, knock the desk and lightly tap other screen edges. Do not tap the top-right target.")
                 .font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
-                Button("Skip") { app.finishCalibration() }
+                Button("Use Existing Background Samples") { app.finishCalibration() }
                     .controlSize(.large)
+                    .disabled(app.count(for: noiseLabel) < 5)
                 Button("Record 20 Seconds") { app.startNoiseRecording(seconds: 20) }
                     .controlSize(.large).buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
             }
@@ -314,7 +311,7 @@ private struct NoiseStage: View {
                 }
             }
             Text("Recording what isn't a tap").font(.title2.weight(.semibold))
-            Text("Type, click the trackpad, knock the desk, adjust the lid. Anything except tapping the screen.")
+            Text("Type, click the trackpad, knock the desk, and gently tap other edges. Avoid the top-right target.")
                 .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Text("\(app.count(for: noiseLabel)) bumps so far").font(.callout).monospacedDigit().foregroundStyle(.tertiary)
         }
@@ -342,7 +339,7 @@ private struct DoneStage: View {
             if let report = app.report, let kind = app.activeKind {
                 let acc = report.accuracy(kind) ?? 0
                 VStack(spacing: 6) {
-                    Text("\(Int((acc * 100).rounded()))% of taps land in the right zone")
+                    Text("\(Int((acc * 100).rounded()))% of examples classified correctly")
                         .font(.largeTitle.weight(.semibold))
                     Text(summary(report, kind))
                         .font(.title3).foregroundStyle(.secondary)
@@ -375,7 +372,7 @@ private struct DoneStage: View {
 
     private func advice(_ r: ModelReport) -> String {
         let weak = r.zoneReliability.filter { $0.value < 0.85 }.keys.sorted().map { "\($0 + 1)" }
-        if weak.isEmpty { return "Every zone is reliable. Tap gently, the way you just did." }
-        return "Zone \(weak.joined(separator: ", ")) " + (weak.count == 1 ? "gets" : "get") + " mixed up more often. Add a few more taps there, or switch to fewer zones."
+        if weak.isEmpty { return "Ready: double-tap the top-right edge, 0.18–0.65 seconds apart. Single taps do nothing." }
+        return "The target is sometimes confused with background motion. Add more target taps and background examples."
     }
 }

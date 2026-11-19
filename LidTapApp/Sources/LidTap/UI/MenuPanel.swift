@@ -126,8 +126,8 @@ struct MenuPanel: View {
     private var firstRun: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(app.config.hasProfiles
-                 ? "Calibrate “\(app.config.activeProfile?.name ?? "")” on this surface: tap each highlighted zone a few times. About two minutes."
-                 : "Tap each highlighted zone a few times so LidTap learns your screen. About two minutes.")
+                 ? "Calibrate “\(app.config.activeProfile?.name ?? "")” on this surface: record single taps at the top-right edge, then background bumps."
+                 : "Train the top-right edge with single taps and background bumps. Then double-tap to run your action.")
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button { dismiss(); app.startCalibration() } label: {
                 Text("Calibrate").frame(maxWidth: .infinity)
@@ -146,7 +146,7 @@ struct ZoneActionMenu: View {
 
     var body: some View {
         let current = app.action(for: zone).kind
-        Text("Zone \(zone + 1)")
+        Text("Top-right double tap")
         ForEach(ActionKind.allCases.filter { !$0.needsChoice }) { kind in
             Button {
                 app.setAction(ZoneAction(kind: kind), for: zone)

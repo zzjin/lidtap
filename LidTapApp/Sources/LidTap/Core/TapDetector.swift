@@ -4,7 +4,7 @@ import Foundation
 struct DetectorSettings: Codable, Equatable {
     var k: Double = 6            // trigger at k x idle gyro noise ...
     var minThreshold: Double = 1 // ... but never below this many deg/s
-    var refractory: Double = 0.5   // people wait for the wobble to settle before the next tap
+    var refractory: Double = DoubleTap.minimumInterval   // allow the second tap of a deliberate pair
     var gateSeconds: Double = 0.3
     var gating: Bool = true
 
@@ -235,7 +235,7 @@ final class TapDetector {
         // Re-arm only after the dead time AND 80 ms below the trigger, so one ringing tap can't fire twice.
         if t >= warmUntil!, t >= refractoryUntil, t - lastAbove > 0.08 {
             pending.append(t)
-            refractoryUntil = t + _settings.refractory
+            refractoryUntil = t + DoubleTap.minimumInterval
             quietUntil = t + 0.5
         }
         lastAbove = t

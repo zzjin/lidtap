@@ -18,7 +18,7 @@ struct TapSample: Codable, Identifiable {
 }
 
 struct Dataset: Codable {
-    var grid = Grid(rows: 2, cols: 2)
+    var grid = Grid.singleTarget
     var samples: [TapSample] = []
 
     func count(_ label: String) -> Int { samples.reduce(0) { $0 + ($1.label == label ? 1 : 0) } }
@@ -42,7 +42,7 @@ struct AppConfig: Codable, Equatable {
     var guardMutesMic = true
     var guardStopsCamera = true
     /// Ask GitHub about once a day whether a newer LidTap is out (installing always needs the user's OK).
-    var checkForUpdates = true
+    var checkForUpdates = false
     /// Places with their own calibration, sensitivity and zone actions (empty until the user adds one).
     var profiles: [Profile] = []
     var activeProfileID = Profile.defaultID
@@ -83,7 +83,7 @@ struct Store {
     init(directory: URL? = nil) {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let env = ProcessInfo.processInfo.environment["LIDTAP_DATA_DIR"].map { URL(fileURLWithPath: $0, isDirectory: true) }
-        let dir = directory ?? env ?? base.appendingPathComponent("LidTap", isDirectory: true)
+        let dir = directory ?? env ?? base.appendingPathComponent("LidTapDoubleTap", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.directory = dir
     }

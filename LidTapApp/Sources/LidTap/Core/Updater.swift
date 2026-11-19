@@ -82,8 +82,8 @@ enum UpdateError: LocalizedError, Equatable {
 // MARK: - Installing
 
 enum UpdateInstaller {
-    static let bundleID = "dev.lidtap.LidTap"
-    static let teamID = "23R7L2SQ34"
+    static let bundleID = "dev.zzjin.LidTapDoubleTap"
+    static let teamID = "CONFIGURE_YOUR_TEAM_ID"
 
     /// Signed with a Developer ID certificate issued by Apple to LidTap's developer, for this app.
     static let requirement = """
@@ -177,8 +177,8 @@ enum UpdateInstaller {
 final class Updater {
     enum State: Equatable { case idle, checking, upToDate, available, downloading, installing, failed(String) }
 
-    nonisolated static let feed = URL(string: "https://api.github.com/repos/yemcube/lidtap/releases/latest")!
-    nonisolated static let releasesPage = URL(string: "https://github.com/yemcube/lidtap/releases/latest")!
+    nonisolated static let feed = URL(string: "https://api.github.com/repos/zzjin/lidtap/releases/latest")!
+    nonisolated static let releasesPage = URL(string: "https://github.com/zzjin/lidtap/releases/latest")!
     /// Automatic checks happen at most this often.
     nonisolated static let interval: TimeInterval = 24 * 3600
 
@@ -216,6 +216,10 @@ final class Updater {
     /// Asks GitHub for the latest release. A newer one that the user hasn't skipped or snoozed goes to `onFound`
     /// (always, when the user asked).
     func check(userInitiated: Bool) async {
+        guard UpdateInstaller.teamID != "CONFIGURE_YOUR_TEAM_ID" else {
+            state = .failed("Automatic installation is disabled in this fork until its own Developer ID is configured. Build locally or download from github.com/zzjin/lidtap.")
+            return
+        }
         if state == .checking || state == .downloading || state == .installing { return }
         state = .checking
         do {

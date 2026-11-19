@@ -46,12 +46,12 @@ cp "$BUILD/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 # "Developer ID Application: …" identity to sign for distribution (then notarize with notarytool).
 if [ -n "$LIDTAP_SIGN_ID" ]; then STAMP="--timestamp"; else STAMP="--timestamp=none"; fi  # notarization needs a secure timestamp
 codesign --force --options runtime "$STAMP" --entitlements Resources/LidTap.entitlements \
-  --sign "${LIDTAP_SIGN_ID:--}" --identifier dev.lidtap.LidTap "$APP"
+  --sign "${LIDTAP_SIGN_ID:--}" --identifier dev.zzjin.LidTapDoubleTap "$APP"
 
 if [ "$MODE" != "--no-install" ]; then
-  DEST="$HOME/Applications/LidTap.app"
+  DEST="$HOME/Applications/LidTap Double Tap.app"
   mkdir -p "$HOME/Applications"
-  pkill -x LidTap 2>/dev/null && sleep 0.5 || true
+  # Do not terminate the upstream app: this fork has a separate installation.
   rm -rf "$DEST"
   cp -R "$APP" "$DEST"
   echo "Installed to $DEST"

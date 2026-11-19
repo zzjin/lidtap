@@ -119,7 +119,7 @@ struct Ripple: View {
 
 // MARK: - Display Map (the signature)
 
-/// The laptop display at its real proportions, split into zones by hairlines. Used on every surface.
+/// A single fixed target on the top-right edge of the built-in display.
 struct DisplayMap: View {
     enum Style { case compact, regular, large }
 
@@ -148,7 +148,11 @@ struct DisplayMap: View {
                         .frame(width: w, height: h)
                         .offset(x: CGFloat(i % grid.cols) * w, y: CGFloat(i / grid.cols) * h)
                 }
-                hairlines(w: w, h: h, size: geo.size)
+                Image(systemName: "hand.tap.fill")
+                    .foregroundStyle(.white)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .allowsHitTesting(false)
                 if style == .large {
                     Capsule().fill(Color.black).frame(width: geo.size.width * 0.12, height: 7)
                         .frame(maxWidth: .infinity).padding(.top, 2)
@@ -159,7 +163,7 @@ struct DisplayMap: View {
         }
         .aspectRatio(NSScreen.builtInAspect, contentMode: .fit)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Zones on your screen")
+        .accessibilityLabel("Double-tap the top-right screen edge")
     }
 
     private func hairlines(w: CGFloat, h: CGFloat, size: CGSize) -> some View {
@@ -199,7 +203,7 @@ struct DisplayMap: View {
                 }
             }
             if style != .compact {
-                Text("\(i + 1)")
+                Text("2×")
                     .font(.system(size: style == .large ? 11 : 9, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.38))
                     .padding(style == .large ? 9 : 6)
@@ -214,9 +218,9 @@ struct DisplayMap: View {
         .onHover { hovered = $0 ? i : (hovered == i ? nil : hovered) }
         .onTapGesture { onSelect?(i) }
         .contextMenu { if let contextMenu { contextMenu(i) } }
-        .help("Zone \(i + 1): \(a.title)")
+        .help("Top-right double tap: \(a.title). Click to test the action.")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Zone \(i + 1), \(a.title)")
+        .accessibilityLabel("Top-right double tap, \(a.title)")
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
         .animation(DS.Motion.feedback, value: isHovered)
         .animation(DS.Motion.state, value: isSelected)

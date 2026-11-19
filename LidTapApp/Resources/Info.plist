@@ -3,8 +3,8 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key><string>LidTap</string>
-    <key>CFBundleDisplayName</key><string>LidTap</string>
-    <key>CFBundleIdentifier</key><string>dev.lidtap.LidTap</string>
+    <key>CFBundleDisplayName</key><string>LidTap Double Tap</string>
+    <key>CFBundleIdentifier</key><string>dev.zzjin.LidTapDoubleTap</string>
     <key>CFBundleExecutable</key><string>LidTap</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>

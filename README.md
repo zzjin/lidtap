@@ -1,4 +1,26 @@
-# LidTap
+# LidTap — Top-right Double Tap
+
+This fork has one trigger: **lightly double-tap the top-right edge of the open MacBook display**. Each tap must be recognised as the trained target, 0.18–0.65 seconds apart. A single tap does not run an action. All original action choices, profiles, permissions, feedback and Privacy Guard remain available. There is no selectable grid.
+
+**Based on LidTap by Yemcube ([Instagram @yem.cube](https://www.instagram.com/yem.cube)).** See [LICENSE](LICENSE); commercial use requires the author's permission.
+
+## Fork setup and build
+
+1. Build on macOS 14+ with Xcode Command Line Tools: `LidTapApp/scripts/build.sh` (or `--no-install`). Installed as `~/Applications/LidTap Double Tap.app`, with bundle ID `dev.zzjin.LidTapDoubleTap`.
+2. Grant this fork its own Accessibility permission. Open Action settings and choose the action for the top-right double tap.
+3. Calibrate with **single**, separated, gentle taps at the top-right edge, then record background examples (including other edges). At least two classes are required for training; first-time background recording cannot be skipped from the UI.
+4. After calibration, double-tap the same edge. Never press or strike the display glass. The default action is Desktop Right.
+5. Data is stored separately in `~/Library/Application Support/LidTapDoubleTap`. Multi-zone calibration files are not reused; recalibrate this target.
+
+Run `LidTapApp/scripts/test.sh` for ML, detector and double-tap tests. Historical upstream `logic`, `profiles`, `ui`, `update` and system suites are retained as references but are not part of the fork's default regression suite: several assert the old grid/single-tap/updater behavior. The macOS GitHub Actions workflow builds the app, runs the fork suites and produces an ad-hoc signed ZIP; it is **not notarized**.
+
+The release script is retained for your own Developer ID/notarization credentials. Automatic update installation is disabled until `UpdateInstaller.teamID` is configured for your identity; the feed points only to this fork. Do not use the upstream developer's signing identity. See [FORK.md](FORK.md) for implementation and validation details.
+
+---
+
+## Upstream documentation (historical multi-zone behavior)
+
+The remainder below describes the original app, not this fork's trigger or installation/update configuration.
 
 **Tap your MacBook lid.** LidTap turns the edges of your MacBook's display into buttons, with no extra
 hardware. Tap a corner of the screen and it switches desktops, plays your music or hides everything

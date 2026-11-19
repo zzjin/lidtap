@@ -63,6 +63,7 @@ final class AppModel {
     var config: AppConfig {
         didSet {
             guard config != oldValue else { return }
+            doubleTap.reset()
             // Keep the active profile's saved copy in step with the live settings.
             if config.activeProfileID == oldValue.activeProfileID, let i = config.activeProfileIndex,
                config.profiles[i].settings != config.profileSettings {
@@ -89,7 +90,7 @@ final class AppModel {
     private(set) var isTraining = false
     private(set) var recent: [TapRecord] = []
     private(set) var status = SensorStatus()
-    var calibration: CalibrationState?
+    var calibration: CalibrationState? { didSet { doubleTap.reset() } }
     private(set) var tapFlash = false
     /// The zone that last answered a tap, with a counter so the same zone can ripple again.
     private(set) var ripple: (zone: Int, id: Int)?
@@ -110,6 +111,7 @@ final class AppModel {
     @ObservationIgnored let imu = IMUReader()
     @ObservationIgnored let store: Store
     @ObservationIgnored private var model: ZoneModel?
+    @ObservationIgnored private var doubleTap = DoubleTap()
     @ObservationIgnored private var features: [Int: [Double]] = [:]  // sample id -> features
     @ObservationIgnored private var nextSampleID = 1
     @ObservationIgnored private var saveTask: Task<Void, Never>?
@@ -138,7 +140,7 @@ final class AppModel {
         dataset = Dataset()
         loadDataset(profile: config.activeProfileID)
         if config.actions.isEmpty { config.actions = ZoneAction.defaults(for: dataset.grid) }
-        if config.detector.refractory < 0.5 { config.detector.refractory = 0.5 }  // older default was 0.35 s
+        config.detector.refractory = DoubleTap.minimumInterval
         detector.settings = config.detector
         privacyGuard.muteMic = config.guardMutesMic
         privacyGuard.stopCamera = config.guardStopsCamera
@@ -290,6 +292,7 @@ final class AppModel {
         // During the bump step everything is recorded, typing and clicking included: that is how the
         // recogniser learns what they feel like and learns to reject them.
         if !noiseRecording, let (reason, detail) = inputGate(event) {
+            doubleTap.reset()
             record(.ignored, nil, nil, "Ignored: \(reason)", gateDetail: detail)
             if calibration?.phase == .taps { flash(.ignored(reason)) }
             return
@@ -318,7 +321,7 @@ final class AppModel {
                 flash(.recorded(label))
                 if let z = zoneIndex(label) { ripple = (z, (ripple?.id ?? 0) + 1) }
                 if config.playSounds && presentsUI { NSSound(named: "Tink")?.play() }
-                record(.recorded, label, nil, "Recorded for Zone \((zoneIndex(label) ?? 0) + 1)")
+                record(.recorded, label, nil, "Recorded for the top-right target")
             case .noise:
                 addSample(event, label: noiseLabel)
                 record(.recorded, noiseLabel, nil, "Recorded as a not-a-tap example")
@@ -328,33 +331,41 @@ final class AppModel {
             return
         }
 
-        guard config.enabled else { return }
+        guard config.enabled else { doubleTap.reset(); return }
+        if let lid = event.lid, lid < 20 { doubleTap.reset(); return }
         if event.peakG < minTapStrength {
+            doubleTap.reset()
             record(.rejected, nil, nil, String(format: "Too soft (%.1f °/s). Tap a little crisper", event.peakG))
             return
         }
         guard let model else {
-            record(.untrained, nil, nil, "Tap detected. Calibrate to map it to a zone")
+            record(.untrained, nil, nil, "Tap detected. Calibrate the top-right target")
             return
         }
         let p = model.predict(Features.extract(g: event.g, a: event.a), rejectFactor: config.rejectFactor)
         let action = config.actions[p.label] ?? ZoneAction()
 
-        if privacyGuard.isActive {
-            if p.rejected == nil && action.kind == .privacyGuard {
-                privacyGuard.release()
-                record(.acted, p.label, p.confidence, "Privacy Guard off")
-            } else {
-                record(.guarded, p.label, p.confidence, "Ignored while Privacy Guard is on")
-            }
-            return
-        }
         // Privacy Guard hides the screen and mutes the mic, so a guess must be much surer before it fires.
         let floor = action.kind == .privacyGuard ? max(config.minConfidence, 0.85) : config.minConfidence
         let confidence = p.confidence
-        if let reason = p.rejected ?? (confidence < floor ? "Not sure which zone" : nil) {
+        if let reason = p.rejected ?? (p.label != zoneLabel(0) || confidence < floor ? "Not sure this is the top-right target" : nil) {
+            doubleTap.reset()
             record(.rejected, p.label, confidence, reason)
             if presentsUI && config.showTapFeedback { TapFeedback.shared.show(zone: nil, grid: grid, action: nil) }
+            return
+        }
+        if privacyGuard.isActive && action.kind != .privacyGuard {
+            doubleTap.reset()
+            record(.guarded, p.label, confidence, "Ignored while Privacy Guard is on")
+            return
+        }
+        guard doubleTap.accept(at: event.time) else {
+            record(.ignored, p.label, confidence, "First tap — tap the top-right edge again within 0.65 seconds")
+            return
+        }
+        if privacyGuard.isActive {
+            privacyGuard.release()
+            record(.acted, p.label, confidence, "Privacy Guard off")
             return
         }
         let error = performAction(action)
@@ -380,7 +391,7 @@ final class AppModel {
         guard config.detector.gating else { return nil }
         // A deliberate tap starts from a still screen: wait-for-the-wobble, as people naturally do.
         // The limit scales with the resting noise, whose own peaks over 300 ms reach about 4x its RMS.
-        if event.preMotion > max(0.6 * event.threshold, 5 * event.noise, 0.6) {
+        if !doubleTap.isAwaitingSecond(at: event.time), event.preMotion > max(0.6 * event.threshold, 5 * event.noise, 0.6) {
             return ("still moving", String(format: "%.1f °/s of motion in the 300 ms before (trigger %.1f)", event.preMotion, event.threshold))
         }
         let before = config.detector.gateSeconds, after = 0.15
@@ -445,7 +456,8 @@ final class AppModel {
     // MARK: Calibration
 
     func startCalibration(grid newGrid: Grid? = nil, perZone: Int = 15, block: Int = 5) {
-        let target = newGrid ?? dataset.grid
+        doubleTap.reset()
+        let target = Grid.singleTarget
         if target != dataset.grid {
             dataset.samples.removeAll { $0.label != noiseLabel }
             dataset.grid = target
@@ -562,6 +574,7 @@ final class AppModel {
     // MARK: Training
 
     func retrain(completion: (() -> Void)? = nil) {
+        doubleTap.reset()
         let samples = dataset.samples.filter(usable())
         let X = samples.map { features[$0.id] ?? Features.extract(g: $0.g, a: $0.a) }
         let labels = samples.map(\.label)
@@ -627,7 +640,11 @@ final class AppModel {
 
     /// Loads one profile's recorded taps (without training on them).
     private func loadDataset(profile id: String) {
+        doubleTap.reset()
         dataset = store.loadDataset(profile: id)
+        // Multi-zone samples describe different physical targets. Never relabel them as this target.
+        if dataset.grid != .singleTarget { dataset = Dataset() }
+        dataset.samples.removeAll { $0.label != zoneLabel(0) && $0.label != noiseLabel }
         features = [:]
         for s in dataset.samples { features[s.id] = Features.extract(g: s.g, a: s.a) }
         nextSampleID = (dataset.samples.map(\.id).max() ?? 0) + 1

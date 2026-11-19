@@ -4,9 +4,10 @@ struct Grid: Codable, Equatable, Hashable {
     var rows: Int
     var cols: Int
     var count: Int { rows * cols }
-    var title: String { "\(rows)×\(cols)" }
+    var title: String { self == .singleTarget ? "Top-right double tap" : "\(rows)×\(cols)" }
 
-    static let presets = [Grid(rows: 2, cols: 2), Grid(rows: 2, cols: 3), Grid(rows: 3, cols: 3)]
+    static let singleTarget = Grid(rows: 1, cols: 1)
+    static let presets = [singleTarget]
 }
 
 func zoneLabel(_ i: Int) -> String { "z\(i)" }
@@ -121,7 +122,7 @@ struct ModelReport: Equatable {
 }
 
 enum Layouts {
-    static let full = "Full grid"
+    static let full = "Target / background"
 
     /// Coarser layouts a grid can be merged into: name -> label mapper (nil drops the sample).
     static func all(for grid: Grid) -> [(String, (String) -> String?)] {

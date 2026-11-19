@@ -32,7 +32,7 @@ scripts/build.sh --no-install
 echo "Signing with ${ID}…"
 # Hardened runtime and a secure timestamp are what notarization requires.
 codesign --force --options runtime --timestamp$( [ "$ID" = "-" ] && echo "=none" ) \
-  --entitlements Resources/LidTap.entitlements --identifier dev.lidtap.LidTap --sign "$ID" "$APP"
+  --entitlements Resources/LidTap.entitlements --identifier dev.zzjin.LidTapDoubleTap --sign "$ID" "$APP"
 codesign --verify --strict --verbose=2 "$APP"
 
 rm -f "$ZIP"
