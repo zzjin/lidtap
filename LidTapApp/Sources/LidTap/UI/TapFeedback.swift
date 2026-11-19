@@ -13,7 +13,7 @@ final class TapFeedback {
 
     @Observable final class FeedbackModel {
         var zone: Int?
-        var grid = Grid(rows: 2, cols: 2)
+        var grid = Grid.singleTarget
         var action: ZoneAction?
         var token = 0
     }
@@ -59,13 +59,11 @@ private struct FeedbackView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if let zone = model.zone, let action = model.action {
-                let w = geo.size.width / CGFloat(model.grid.cols), h = geo.size.height / CGFloat(model.grid.rows)
-                let rect = CGRect(x: CGFloat(zone % model.grid.cols) * w, y: CGFloat(zone / model.grid.cols) * h, width: w, height: h)
+            if model.zone != nil, let action = model.action {
                 let tint = action.kind == .none ? Color.white : action.kind.tint
                 ZStack {
                     Ripple(color: tint, trigger: model.token)
-                        .frame(width: min(w, h) * 0.9, height: min(w, h) * 0.9)
+                        .frame(width: 180, height: 180)
                     Label {
                         Text(action.title).font(.title3.weight(.semibold))
                     } icon: {
@@ -77,9 +75,9 @@ private struct FeedbackView: View {
                     .scaleEffect(reduceMotion || shown ? 1 : 0.92)
                     .opacity(shown ? 1 : 0)
                 }
-                .position(x: rect.midX, y: rect.midY)
+                .position(x: geo.size.width - 180, y: 90)
             } else {
-                Label("Not sure which zone. Tap again", systemImage: "questionmark.circle")
+                Label("Target not recognised. Double-tap the top-right edge again", systemImage: "questionmark.circle")
                     .font(.callout.weight(.medium))
                     .padding(.horizontal, 16).padding(.vertical, 9)
                     .floatingGlassCapsule()
