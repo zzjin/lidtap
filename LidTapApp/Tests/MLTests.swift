@@ -66,7 +66,7 @@ func mlTests() {
 
     T.run("cross-validated evaluation on real taps") {
         let r = Evaluator.evaluate(X: X, labels: labels, grid: ds.grid)
-        T.expect(r.layouts == ["Full grid", "Left / right", "Top / bottom"], "2×2 layouts \(r.layouts)")
+        T.expect(r.layouts == [Layouts.full, "Left / right", "Top / bottom"], "2×2 layouts \(r.layouts)")
         for s in r.scores {
             let a = s.accuracy[Layouts.full] ?? 0
             T.note("\(s.kind.title): \(Int(a * 100))%")
@@ -78,7 +78,7 @@ func mlTests() {
 
     T.run("layout mappings for 2×2, 2×3 and 3×3") {
         let g33 = Layouts.all(for: Grid(rows: 3, cols: 3))
-        T.expect(g33.map(\.0) == ["Full grid", "Columns", "Left / right", "Rows", "Top / bottom", "Corners"], "3×3 layouts \(g33.map(\.0))")
+        T.expect(g33.map(\.0) == [Layouts.full, "Columns", "Left / right", "Rows", "Top / bottom", "Corners"], "3×3 layouts \(g33.map(\.0))")
         let lr = g33.first { $0.0 == "Left / right" }!.1
         T.expect(lr("z0") == "L" && lr("z2") == "R" && lr("z1") == nil && lr("z4") == nil && lr(noiseLabel) == noiseLabel, "3×3 left/right drops the middle column")
         let corners = g33.first { $0.0 == "Corners" }!.1
