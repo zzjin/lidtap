@@ -412,7 +412,7 @@ private struct TrainingPane: View {
 
     private func confusion(_ report: ModelReport) -> some View {
         let cm = report.confusion ?? []
-        let short = report.labels.map { $0 == noiseLabel ? "Bump" : "\((zoneIndex($0) ?? 0) + 1)" }
+        let short = report.labels.map { $0 == noiseLabel ? "Bump" : "Target" }
         return VStack(alignment: .leading, spacing: 8) {
             SwiftUI.Grid(horizontalSpacing: 3, verticalSpacing: 3) {
                 GridRow {
@@ -443,9 +443,9 @@ private struct TrainingPane: View {
 
     private func learning(_ report: ModelReport) -> some View {
         Chart(report.learning, id: \.n) { p in
-            LineMark(x: .value("Taps per zone", p.n), y: .value("Accuracy", p.accuracy))
+            LineMark(x: .value("Taps", p.n), y: .value("Accuracy", p.accuracy))
                 .interpolationMethod(.monotone)
-            PointMark(x: .value("Taps per zone", p.n), y: .value("Accuracy", p.accuracy))
+            PointMark(x: .value("Taps", p.n), y: .value("Accuracy", p.accuracy))
         }
         .foregroundStyle(Color.accentColor)
         .chartYScale(domain: 0...1)
@@ -453,7 +453,7 @@ private struct TrainingPane: View {
             AxisGridLine()
             AxisValueLabel { Text("\(Int((v.as(Double.self) ?? 0) * 100))%") }
         } }
-        .chartXAxisLabel("Taps per zone")
+        .chartXAxisLabel("Taps")
         .frame(height: 160)
         .padding(.vertical, 6)
     }

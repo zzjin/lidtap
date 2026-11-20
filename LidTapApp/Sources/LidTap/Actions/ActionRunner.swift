@@ -97,10 +97,10 @@ enum ActionRunner {
                 waitUntilFrontmost(app.bundleIdentifier) { KeySender.press(.n, flags: .maskCommand) }
             }
         case .openApp:
-            guard let id = action.appBundleID else { return "Choose an app for this zone in Settings." }
+            guard let id = action.appBundleID else { return "Choose an app for this double tap in Settings." }
             openApp(bundleID: id, then: nil)
         case .runShortcut:
-            guard let name = action.shortcutName else { return "Choose a shortcut for this zone in Settings." }
+            guard let name = action.shortcutName else { return "Choose a shortcut for this double tap in Settings." }
             Shortcuts.run(name)
         case .privacyGuard:
             guardController.toggle()

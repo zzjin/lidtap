@@ -249,7 +249,7 @@ struct PrivacyOverlayView: View {
             }
             .frame(width: 420)
             .floatingGlass(cornerRadius: 18)
-            Text("Tap your Privacy Guard zone again, or click anywhere, to come back.")
+            Text("Double-tap the top-right edge again, or click anywhere, to come back.")
                 .font(.callout)
                 .foregroundStyle(.white.opacity(0.6))
         }

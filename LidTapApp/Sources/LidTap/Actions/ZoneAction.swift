@@ -25,7 +25,7 @@ enum ActionKind: String, Codable, CaseIterable, Identifiable {
 
     var detail: String {
         switch self {
-        case .none: "This zone does nothing"
+        case .none: "This double tap does nothing"
         case .desktopLeft: "Switch to the Space on the left"
         case .desktopRight: "Switch to the Space on the right"
         case .newNote: "Open Notes with a fresh note"

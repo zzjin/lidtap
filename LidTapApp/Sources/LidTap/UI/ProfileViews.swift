@@ -142,7 +142,7 @@ struct ProfilePicker: View {
         .pickerStyle(.menu)
         .fixedSize()
         .disabled(!app.canChangeProfile)
-        .help("Zones, training and detection settings belong to this profile")
+        .help("The action, training and detection settings belong to this profile")
     }
 }
 
